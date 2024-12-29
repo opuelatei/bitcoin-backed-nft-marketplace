@@ -91,3 +91,36 @@
         last-claim: uint
     }
 )
+
+;; =====================================
+;; Private Helper Functions
+;; =====================================
+
+;; Validates URI format and length
+(define-private (validate-uri (uri (string-ascii 256)))
+    (let
+        (
+            (uri-len (len uri))
+        )
+        (and
+            (> uri-len u0)
+            (<= uri-len u256)
+        )
+    )
+)
+
+;; Ensures recipient is not the contract itself
+(define-private (validate-recipient (recipient principal))
+    (not (is-eq recipient (as-contract tx-sender)))
+)
+
+;; Safe addition with overflow checking
+(define-private (safe-add (a uint) (b uint))
+    (let
+        (
+            (sum (+ a b))
+        )
+        (asserts! (>= sum a) err-overflow)
+        (ok sum)
+    )
+)
