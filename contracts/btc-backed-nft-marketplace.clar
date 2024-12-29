@@ -171,3 +171,61 @@
         (ok true)
     )
 )
+
+;; =====================================
+;; Marketplace Functions
+;; =====================================
+
+;; Lists NFT for sale
+(define-public (list-nft (token-id uint) (price uint))
+    (let
+        (
+            (token (unwrap! (get-token-info token-id) err-invalid-token))
+        )
+        (asserts! (> price u0) err-invalid-price)
+        (asserts! (is-eq tx-sender (get owner token)) err-not-token-owner)
+        (asserts! (not (get is-staked token)) err-already-staked)
+        (map-set token-listings
+            { token-id: token-id }
+            {
+                price: price,
+                seller: tx-sender,
+                active: true
+            }
+        )
+        (ok true)
+    )
+)
+
+;; Purchases listed NFT
+(define-public (purchase-nft (token-id uint))
+    (let
+        (
+            (listing (unwrap! (get-listing token-id) err-listing-not-found))
+            (price (get price listing))
+            (seller (get seller listing))
+            (fee (/ (* price (var-get protocol-fee)) u1000))
+        )
+        (asserts! (get active listing) err-listing-not-found)
+        (asserts! (is-eq (get active listing) true) err-listing-not-found)
+        
+        ;; Transfer STX from buyer to seller
+        (try! (stx-transfer? price tx-sender seller))
+        ;; Transfer protocol fee
+        (try! (stx-transfer? fee tx-sender (as-contract tx-sender)))
+        
+        ;; Update token ownership
+        (try! (transfer-nft token-id tx-sender))
+        
+        ;; Clear listing
+        (map-set token-listings
+            { token-id: token-id }
+            {
+                price: u0,
+                seller: seller,
+                active: false
+            }
+        )
+        (ok true)
+    )
+)
