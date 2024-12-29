@@ -354,3 +354,29 @@
         (ok (+ (get accumulated-yield rewards) new-rewards))
     )
 )
+
+;; =====================================
+;; Private Functions
+;; =====================================
+
+;; Claims accumulated staking rewards
+(define-private (claim-staking-rewards (token-id uint))
+    (let
+        (
+            (rewards (unwrap! (calculate-rewards token-id) err-not-staked))
+            (token (unwrap! (get-token-info token-id) err-invalid-token))
+        )
+        (asserts! (get is-staked token) err-not-staked)
+        
+        (map-set staking-rewards
+            { token-id: token-id }
+            {
+                accumulated-yield: u0,
+                last-claim: block-height
+            }
+        )
+        
+        ;; Transfer rewards in STX
+        (as-contract (stx-transfer? rewards (as-contract tx-sender) (get owner token)))
+    )
+)
