@@ -124,3 +124,50 @@
         (ok sum)
     )
 )
+
+;; =====================================
+;; NFT Core Functions
+;; =====================================
+
+;; Mints a new NFT with collateral backing
+(define-public (mint-nft (uri (string-ascii 256)) (collateral uint))
+    (let
+        (
+            (token-id (+ (var-get total-supply) u1))
+            (collateral-requirement (/ (* (var-get min-collateral-ratio) collateral) u100))
+        )
+        (asserts! (validate-uri uri) err-invalid-uri)
+        (asserts! (>= (stx-get-balance tx-sender) collateral-requirement) err-insufficient-collateral)
+        (try! (stx-transfer? collateral-requirement tx-sender (as-contract tx-sender)))
+        (map-set tokens
+            { token-id: token-id }
+            {
+                owner: tx-sender,
+                uri: uri,
+                collateral: collateral,
+                is-staked: false,
+                stake-timestamp: u0,
+                fractional-shares: u0
+            }
+        )
+        (var-set total-supply token-id)
+        (ok token-id)
+    )
+)
+
+;; Transfers NFT ownership
+(define-public (transfer-nft (token-id uint) (recipient principal))
+    (let
+        (
+            (token (unwrap! (get-token-info token-id) err-invalid-token))
+        )
+        (asserts! (validate-recipient recipient) err-invalid-recipient)
+        (asserts! (is-eq tx-sender (get owner token)) err-not-token-owner)
+        (asserts! (not (get is-staked token)) err-already-staked)
+        (map-set tokens
+            { token-id: token-id }
+            (merge token { owner: recipient })
+        )
+        (ok true)
+    )
+)
