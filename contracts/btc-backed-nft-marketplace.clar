@@ -49,3 +49,45 @@
 (define-data-var total-staked uint u0)
 (define-data-var yield-rate uint u50)             ;; 5% annual yield rate in basis points
 (define-data-var total-supply uint u0)
+
+;; =====================================
+;; Data Maps
+;; =====================================
+
+;; Main token storage
+(define-map tokens
+    { token-id: uint }
+    {
+        owner: principal,
+        uri: (string-ascii 256),
+        collateral: uint,
+        is-staked: bool,
+        stake-timestamp: uint,
+        fractional-shares: uint
+    }
+)
+
+;; Marketplace listings
+(define-map token-listings
+    { token-id: uint }
+    {
+        price: uint,
+        seller: principal,
+        active: bool
+    }
+)
+
+;; Fractional ownership tracking
+(define-map fractional-ownership
+    { token-id: uint, owner: principal }
+    { shares: uint }
+)
+
+;; Staking rewards tracking
+(define-map staking-rewards
+    { token-id: uint }
+    { 
+        accumulated-yield: uint,
+        last-claim: uint
+    }
+)
